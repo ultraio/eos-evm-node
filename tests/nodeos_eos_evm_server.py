@@ -194,26 +194,26 @@ try:
     # create accounts via eosio as otherwise a bid is needed
     for account in accounts:
         Print("Create new account %s via %s with private key: %s" % (account.name, cluster.eosioAccount.name, account.activePrivateKey))
-        trans=nonProdNode.createInitializeAccount(account, cluster.eosioAccount, stakedDeposit=0, waitForTransBlock=True, stakeNet=10000, stakeCPU=10000, buyRAM=10000000, exitOnError=True)
+        trans=nonProdNode.createInitializeAccount(account, cluster.eosioAccount, stakedDeposit=0, waitForTransBlock=True, power=10000, buyRAM=10000000, exitOnError=True)
         #   max supply 1000000000.0000 (1 Billion)
         transferAmount="50000000.0000 {0}".format(CORE_SYMBOL)
         Print("Transfer funds %s from account %s to %s" % (transferAmount, cluster.eosioAccount.name, account.name))
         nonProdNode.transferFunds(cluster.eosioAccount, account, transferAmount, "test transfer", waitForTransBlock=True)
-        trans=nonProdNode.delegatebw(account, 20000000.0000, 20000000.0000, waitForTransBlock=False, exitOnError=True)
+        trans=nonProdNode.delegatebw(account, 20000000.0000, waitForTransBlock=False, exitOnError=True)
 
     # ***   vote using accounts   ***
 
     cluster.waitOnClusterSync(blockAdvancing=3)
 
     # vote a,b,c  u
-    voteProducers=[]
-    voteProducers.append("defproducera")
-    voteProducers.append("defproducerb")
-    voteProducers.append("defproducerc")
-    voteProducers.append("defproduceru")
-    for account in accounts:
-        Print("Account %s vote for producers=%s" % (account.name, voteProducers))
-        trans=prodNode.vote(account, voteProducers, exitOnError=True, waitForTransBlock=False)
+    # voteProducers=[]
+    # voteProducers.append("defproducera")
+    # voteProducers.append("defproducerb")
+    # voteProducers.append("defproducerc")
+    # voteProducers.append("defproduceru")
+    # for account in accounts:
+    #     Print("Account %s vote for producers=%s" % (account.name, voteProducers))
+    #     trans=prodNode.vote(account, voteProducers, exitOnError=True, waitForTransBlock=False)
 
     #verify nodes are in sync and advancing
     cluster.waitOnClusterSync(blockAdvancing=3)
@@ -232,7 +232,7 @@ try:
     cmd="set account permission eosio.evm active --add-code -p eosio.evm@active"
     prodNode.processCleosCmd(cmd, cmd, silentErrors=True, returnType=ReturnType.raw)
 
-    trans = prodNode.pushMessage(evmAcc.name, "init", '{"chainid":15555, "fee_params": {"gas_price": "150000000000", "miner_cut": 10000, "ingress_bridge_fee": null}}', '-p eosio.evm')
+    trans = prodNode.pushMessage(evmAcc.name, "init", '{"chainid":15555, "fee_params": {"gas_price": "1000000000", "miner_cut": 1, "ingress_bridge_fee": "0.0001 UOS"}}', '-p eosio.evm')
 
     prodNode.waitForTransBlockIfNeeded(trans[1], True)
 
@@ -265,6 +265,11 @@ try:
         "nonce": f'{convert_name_to_value(evmAcc.name):#0x}',
         "timestamp": hex(int(calendar.timegm(datetime.strptime(block["timestamp"].split(".")[0], '%Y-%m-%dT%H:%M:%S').timetuple())))
     }
+
+    Utils.Print("transfer to eosio.evm 100 UOS")
+    # Fund with 100.0000 UOS eosio.evm
+    data={"from":"eosio.erc2o", "to":"eosio.evm", "quantity":"100.0000 {0}".format(CORE_SYMBOL), "memo":"eosio.evm"}
+    trans=prodNode.pushMessage("eosio.token", "transfer", json.dumps(data), '-p eosio.erc2o@active')
 
     if eosEvmBridgeContractsRoot:
         Utils.Print("Set eosio.evm as privileged account")
